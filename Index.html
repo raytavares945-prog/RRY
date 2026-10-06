@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RRI - Mensagens</title>
+
+  <!-- Firebase SDKs (Compatibility Mode) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+  <style>
+    /* RESET & ESTILOS BASE */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background-color: #0b141a;
+      color: #e9edef;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Container Smartphone */
+    .app-container {
+      width: 100%;
+      max-width: 412px;
+      height: 100vh;
+      max-height: 840px;
+      background-color: #111b21;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+    }
+
+    @media (min-width: 450px) {
+      .app-container {
+        height: 732px;
+        border-radius: 24px;
+        border: 1px solid #222d34;
+      }
+    }
+
+    /* SISTEMA DE TELAS */
+    .screen {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: #111b21;
+      z-index: 1;
+    }
+
+    .screen.active {
+      display: flex;
+    }
+
+    /* CARREGAMENTO / TIMER OVERLAY */
+    .loader-overlay {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(11, 20, 26, 0.92);
+      z-index: 999;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .loader-overlay.active {
+      display: flex;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid #222d34;
+      border-top: 4px solid #00a884;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* BOTÕES & INPUTS */
+    .btn {
+      width: 85%;
+      padding: 14px;
+      border: none;
+      border-radius: 24px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 15px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .btn-green {
+      background-color: #00a884;
+      color: #111b21;
+    }
+
+    .btn-green:active {
+      background-color: #008f70;
+    }
+
+    .btn-disabled {
+      background-color: #222d34 !important;
+      color: #8696a0 !important;
+      cursor: not-allowed !important;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      color: #00a884;
+      border: 1px solid #00a884;
+    }
+
+    input[type="text"] {
+      width: 85%;
+      padding: 14px;
+      border: 1px solid #222d34;
+      border-radius: 12px;
+      background-color: #202c33;
+      color: #e9edef;
+      font-size: 15px;
+      margin-top: 10px;
+      outline: none;
+      text-align: center;
+    }
+
+    input[type="text"]:focus {
+      border-color: #00a884;
+    }
+
+    /* TELAS */
+    .welcome-screen {
+      justify-content: center;
+      align-items: center;
+      padding: 30px 24px;
+      text-align: center;
+    }
+
+    .app-logo {
+      width: 90px;
+      height: 90px;
+      background: #00a884;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 42px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 20px rgba(0, 168, 132, 0.3);
+    }
+
+    .login-link {
+      color: #00a884;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 25px;
+      text-decoration: underline;
+    }
+
+    .center-screen {
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .number-display {
+      font-size: 26px;
+      font-weight: 700;
+      color: #00a884;
+      background: #202c33;
+      padding: 18px;
+      border-radius: 16px;
+      margin: 20px 0;
+      width: 85%;
+      letter-spacing: 3px;
+      border: 1px dashed #00a884;
+    }
+
+    .profile-avatar {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background-color: #202c33;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 20px auto;
+      cursor: pointer;
+      background-size: cover;
+      background-position: center;
+      border: 2px dashed #00a884;
+      color: #8696a0;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    /* MAIN INTERFACE */
+    .main-header {
+      background-color: #202c33;
+      padding: 16px 16px 0 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #e9edef;
+    }
+
+    .header-icons {
+      font-size: 20px;
+      color: #aebac1;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: space-around;
+      border-bottom: 2px solid #222d34;
+      margin-top: 10px;
+    }
+
+    .tab {
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: 600;
+      color: #8696a0;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+
+    .tab.active {
+      color: #00a884;
+      border-bottom: 3px solid #00a884;
+    }
+
+    .tab-content {
+      display: none;
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #8696a0;
+      margin-top: 60px;
+      font-size: 14px;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: background-color 0.2s;
+    }
+
+    .contact-item:hover {
+      background-color: #202c33;
+    }
+
+    .contact-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin-right: 15px;
+      background-size: cover;
+      background-position: center;
+      background-color: #2a3942;
+      flex-shrink: 0;
+    }
+
+    .contact-info {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .contact-name {
+      font-weight: 500;
+      font-size: 16px;
+      color: #e9edef;
+    }
+
+    .contact-number {
+      font-size: 13px;
+      color: #8696a0;
+      margin-top: 2px;
+    }
+
+    /* CHAT */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      background-color: #202c33;
+      padding: 12px 16px;
+    }
+
+    .back-btn {
+      font-size: 22px;
+      cursor: pointer;
+      margin-right: 15px;
+      color: #aebac1;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background-color: #0b141a;
+    }
+
+    .msg {
+      max-width: 75%;
+      padding: 9px 13px;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-break: break-word;
+      user-select: text;
+    }
+
+    .msg.sent {
+      align-self: flex-end;
+      background-color: #005c4b;
+      color: #e9edef;
+      border-top-right-radius: 2px;
+    }
+
+    .msg.received {
+      align-self: flex-start;
+      background-color: #202c33;
+      color: #e9edef;
+      border-top-left-radius: 2px;
+    }
+
+    .chat-input-area {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background-color: #202c33;
+    }
+
+    .chat-input-area input {
+      margin-top: 0;
+      border-radius: 24px;
+      background-color: #2a3942;
+      border: none;
+      text-align: left;
+      padding-left: 18px;
+      flex: 1;
+    }
+
+    .send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background-color: #00a884;
+      color: #111b21;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .fab {
+      position: absolute;
+      bottom: 25px;
+      right: 25px;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background-color: #00a884;
+      color: #111b21;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 26px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 10;
+    }
+
+    .dropdown {
+      display: none;
+      position: absolute;
+      right: 0;
+      top: 30px;
+      background-color: #233138;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+      z-index: 100;
+      min-width: 150px;
+      overflow: hidden;
+    }
+
+    .dropdown div {
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 14px;
+      color: #e9edef;
+    }
+
+    .dropdown div:hover {
+      background-color: #182229;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- OVERLAY DE CARREGAMENTO -->
+    <div id="loader" class="loader-overlay">
+      <div class="spinner"></div>
+      <p id="loaderText" style="color: #00a884; font-weight: 500; font-size: 14px;">Processando...</p>
+    </div>
+
+    <!-- TELA 1: BOAS-VINDAS -->
+    <div id="screen1" class="screen active welcome-screen">
+      <div class="app-logo">💬</div>
+      <h1 style="font-size: 24px; margin-bottom: 8px;">Bem-vindo ao RRI</h1>
+      <p style="color: #8696a0; font-size: 14px; max-width: 280px; line-height: 1.4;">
+        Conecte-se com segurança usando seu número exclusivo.
+      </p>
+      <button class="btn btn-green" onclick="switchScreen('screen2')">Iniciar</button>
+      <div class="login-link" onclick="switchScreen('screenLogin')">Já tenho um número (Entrar)</div>
+    </div>
+
+    <!-- TELA LOGIN: ENTRAR COM NÚMERO EXISTENTE -->
+    <div id="screenLogin" class="screen center-screen">
+      <h2 style="font-size: 20px; margin-bottom: 10px;">Acessar Conta</h2>
+      <p style="color: #8696a0; font-size: 13px; margin-bottom: 20px;">Digite seu número de identificação exclusivo RRI.</p>
+      <input type="text" id="loginNumber" placeholder="Ex: 849201">
+      <button class="btn btn-green" onclick="loginWithNumber()">Entrar</button>
+      <button class="btn btn-secondary" onclick="switchScreen('screen1')">Voltar</button>
+    </div>
+
+    <!-- TELA 2: GERAR NÚMERO -->
+    <div id="screen2" class="screen center-screen">
+      <h2 style="font-size: 20px; margin-bottom: 10px;">Criar Identidade</h2>
+      <p style="color: #8696a0; font-size: 13px;">Geraremos um número exclusivo para sua conta no RRI.</p>
+      
+      <button id="btnGenerate" class="btn btn-green" onclick="generatePhoneNumber()">Gerar número RRI</button>
+      
+      <div id="generatedNumber" class="number-display" style="display:none;"></div>
+      
+      <button id="btnConfirmNumber" class="btn btn-green" style="display:none;" onclick="switchScreen('screen3')">Confirmar e Continuar</button>
+    </div>
+
+    <!-- TELA 3: PERFIL -->
+    <div id="screen3" class="screen center-screen">
+      <h2 style="font-size: 20px; margin-bottom: 10px;">Configure seu Perfil</h2>
+      
+      <div class="profile-avatar" id="avatarPreview" onclick="document.getElementById('fileInput').click()">
+        <span>Adicionar<br>foto</span>
+      </div>
+      
+      <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+      <input type="text" id="profileName" placeholder="Digite seu nome..." oninput="validateProfile()">
+      
+      <button id="btnSaveProfile" class="btn btn-disabled" disabled onclick="saveProfile()">Salvar e Entrar</button>
+    </div>
+
+    <!-- TELA 4: ABA PRINCIPAL (CONVERSAS/STATUS/CHAMADAS) -->
+    <div id="screen4" class="screen">
+      <div class="main-header">
+        <div class="header-top">
+          <span class="header-title">RRI</span>
+          <div class="header-icons" onclick="toggleMenu()">
+            ⋮
+            <div id="dropdownMenu" class="dropdown">
+              <div onclick="openSettings()">Configurações</div>
+              <div onclick="logout()">Sair</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab('chats')">Conversas</div>
+          <div class="tab" onclick="switchTab('status')">Status</div>
+          <div class="tab" onclick="switchTab('calls')">Chamadas</div>
+        </div>
+      </div>
+
+      <div id="tabChats" class="tab-content active">
+        <input type="text" id="searchInput" placeholder="Procurar conversas..." oninput="filterContacts()" style="width: 100%; margin-bottom: 12px; text-align: left; padding-left: 15px;">
+        <div id="contactsList">
+          <div class="empty-state">Nenhuma conversa iniciada.</div>
+        </div>
+      </div>
+
+      <div id="tabStatus" class="tab-content">
+        <div class="empty-state">Nenhum status recente disponível.</div>
+      </div>
+
+      <div id="tabCalls" class="tab-content">
+        <div class="empty-state">Nenhuma chamada recente.</div>
+      </div>
+
+      <div class="fab" onclick="switchScreen('screen5')">+</div>
+    </div>
+
+    <!-- TELA 5: NOVO CONTATO -->
+    <div id="screen5" class="screen center-screen">
+      <h2 style="font-size: 20px; margin-bottom: 10px;">Nova Conversa</h2>
+      <p style="color: #8696a0; font-size: 13px; margin-bottom: 15px;">Informe o número do destinatário para iniciar o chat.</p>
+      
+      <input type="text" id="newContactNumber" placeholder="Número do contato (ID)">
+      <input type="text" id="newContactName" placeholder="Nome para identificação">
+      
+      <button class="btn btn-green" onclick="addContact()">Iniciar Conversa</button>
+      <button class="btn btn-secondary" onclick="switchScreen('screen4')">Cancelar</button>
+    </div>
+
+    <!-- TELA 6: CHAT -->
+    <div id="screen6" class="screen" style="padding: 0;">
+      <div class="chat-header">
+        <span class="back-btn" onclick="switchScreen('screen4')">←</span>
+        <div id="chatAvatar" class="contact-avatar" style="width: 38px; height: 38px; margin-right: 12px;"></div>
+        <div class="contact-info">
+          <span id="chatName" class="contact-name" style="font-size: 15px;"></span>
+          <span id="chatNumber" class="contact-number" style="font-size: 11px;"></span>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages"></div>
+
+      <div class="chat-input-area">
+        <input type="text" id="messageInput" placeholder="Mensagem..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+    <!-- TELA 7: CONFIGURAÇÕES -->
+    <div id="screen7" class="screen" style="padding: 20px;">
+      <div style="display: flex; align-items: center; margin-bottom: 25px;">
+        <span class="back-btn" onclick="switchScreen('screen4')">←</span>
+        <h2 style="font-size: 20px;">Configurações</h2>
+      </div>
+
+      <div style="text-align: center;">
+        <div id="settingsAvatar" class="profile-avatar" style="border: none; cursor: default;"></div>
+        <h3 id="settingsName" style="margin-top: 10px; font-size: 18px;"></h3>
+        
+        <p style="color: #8696a0; font-size: 13px; margin-top: 25px;">Seu número exclusivo RRI:</p>
+        <div id="settingsMyNumber" class="number-display" style="margin: 10px auto; width: 100%;"></div>
+      </div>
+    </div>
+
+  </div>
+  <script>
+    /* CONFIGURAÇÃO FIREBASE */
+    const firebaseConfig = {
+      databaseURL: "https://rryzap-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    /* ESTADO DA APLICAÇÃO */
+    let myNumber = "";
+    let myProfile = { name: "", photo: "" };
+    let contacts = [];
+    let currentChatContact = null;
+    let messagesListener = null;
+
+    /* NAVEGAÇÃO DE TELAS */
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const target = document.getElementById(screenId);
+      if (target) {
+        target.classList.add('active');
+      }
+    }
+
+    /* CARREGAMENTO / TIMER */
+    function showLoader(seconds, text, callback) {
+      const loader = document.getElementById('loader');
+      const loaderText = document.getElementById('loaderText');
+      loader.classList.add('active');
+      loaderText.innerText = text;
+
+      setTimeout(() => {
+        loader.classList.remove('active');
+        if (callback) callback();
+      }, seconds * 1000);
+    }
+
+    /* GERAR NÚMERO */
+    function generatePhoneNumber() {
+      showLoader(1, "Gerando número exclusivo...", () => {
+        const randomId = Math.floor(100000 + Math.random() * 900000).toString();
+
+        db.ref('users/' + randomId).once('value', snapshot => {
+          if (snapshot.exists()) {
+            generatePhoneNumber();
+          } else {
+            myNumber = randomId;
+            const display = document.getElementById('generatedNumber');
+            display.innerText = myNumber;
+            display.style.display = 'block';
+            document.getElementById('btnConfirmNumber').style.display = 'flex';
+            document.getElementById('btnGenerate').style.display = 'none';
+          }
+        });
+      });
+    }
+
+    /* LOGIN */
+    function loginWithNumber() {
+      const num = document.getElementById('loginNumber').value.trim();
+      if (!num) return alert("Por favor, informe seu número!");
+
+      showLoader(1, "Validando conta...", () => {
+        db.ref('users/' + num).once('value', snapshot => {
+          if (snapshot.exists()) {
+            const data = snapshot.val();
+            myNumber = num;
+            myProfile.name = data.name;
+            myProfile.photo = data.photo || '';
+            switchScreen('screen4');
+            renderContacts();
+          } else {
+            alert("Número não encontrado no sistema!");
+          }
+        });
+      });
+    }
+
+    /* PERFIL */
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          myProfile.photo = evt.target.result;
+          const avatar = document.getElementById('avatarPreview');
+          avatar.style.backgroundImage = `url(${myProfile.photo})`;
+          avatar.innerText = '';
+          validateProfile();
+        };
+        reader.readAsDataURL(file);
+      }
+    }
+
+    function validateProfile() {
+      const name = document.getElementById('profileName').value.trim();
+      const btn = document.getElementById('btnSaveProfile');
+      
+      if (name && myProfile.photo) {
+        btn.classList.remove('btn-disabled');
+        btn.classList.add('btn-green');
+        btn.disabled = false;
+      } else {
+        btn.classList.add('btn-disabled');
+        btn.classList.remove('btn-green');
+        btn.disabled = true;
+      }
+    }
+
+    function saveProfile() {
+      myProfile.name = document.getElementById('profileName').value.trim();
+      
+      showLoader(1, "Salvando perfil...", () => {
+        db.ref('users/' + myNumber).set({
+          name: myProfile.name,
+          photo: myProfile.photo
+        }).then(() => {
+          switchScreen('screen4');
+          renderContacts();
+        });
+      });
+    }
+
+    function logout() {
+      document.getElementById('dropdownMenu').style.display = 'none';
+      myNumber = "";
+      myProfile = { name: "", photo: "" };
+      contacts = [];
+      switchScreen('screen1');
+    }
+
+    /* ABAS & MENU */
+    function togg
